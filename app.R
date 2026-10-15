@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
   library(shiny); library(bslib); library(ggplot2); library(grid)
   library(patchwork); library(scales)
 })
-for (f in c("silhouettes", "pca", "layout", "plot", "explain")) source(file.path("R", paste0(f, ".R")))
+for (f in c("silhouettes", "pca", "layout", "plot", "explain")) source(file.path("R", paste0(f, ".R")), encoding = "UTF-8")
 
 CARS <- read.csv("data/cars.csv", stringsAsFactors = FALSE)
 # Only offer body types the data actually has, in the canonical order, so
@@ -223,7 +223,7 @@ server <- function(input, output, session) {
     content = function(file) {
       # A downloaded file has no card behind it, so it needs a real fill.
       ggsave(file, build(), width = 12.5, height = 9.5, dpi = 200,
-             device = ragg::agg_png, limitsize = FALSE, bg = pm_bg(dark()))
+             device = pm_png(), limitsize = FALSE, bg = pm_bg(dark()))
     }
   )
 }
