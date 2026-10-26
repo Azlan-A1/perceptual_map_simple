@@ -5,9 +5,50 @@ suppressPackageStartupMessages({
   library(shiny); library(bslib); library(ggplot2); library(grid)
   library(patchwork); library(scales)
 })
-for (f in c("silhouettes", "pca", "layout", "plot", "explain")) source(file.path("R", paste0(f, ".R")), encoding = "UTF-8")
+# ---------------------------------------------------------------------------
+# Find the project, wherever this was started from. This has to sit inline: it
+# runs before any other file can be sourced. It tries the path R was given on
+# the command line, then the file being source()d, then the working directory,
+# and from whichever it finds walks up to the folder holding R/ and
+# data/cars.csv. Windows drive roots and Unix "/" both terminate the walk.
+# ---------------------------------------------------------------------------
+PM_ROOT <- local({
+  looks_right <- function(d)
+    dir.exists(file.path(d, "R")) && file.exists(file.path(d, "data", "cars.csv"))
+  start <- NULL
+  a <- commandArgs(FALSE)
+  i <- grep("^--file=", a)
+  if (length(i)) start <- sub("^--file=", "", a[i[length(i)]])
+  if (is.null(start)) {
+    for (k in rev(seq_len(sys.nframe()))) {
+      fr <- sys.frame(k)
+      if (!is.null(fr$ofile)) { start <- fr$ofile; break }          # source()
+      if (identical(sys.function(k), base::sys.source) &&           # sys.source()
+          !is.null(fr$file)) { start <- fr$file; break }
+    }
+  }
+  from <- if (is.null(start)) getwd()
+          else dirname(normalizePath(start, winslash = "/", mustWork = FALSE))
+  for (cand in unique(c(from, getwd()))) {
+    d <- normalizePath(cand, winslash = "/", mustWork = FALSE)
+    repeat {
+      if (looks_right(d)) return(d)
+      up <- dirname(d)
+      if (identical(up, d)) break          # "/" on Unix, "C:/" on Windows
+      d <- up
+    }
+  }
+  stop("Could not find the project: no folder above '", getwd(),
+       "' contains both R/ and data/cars.csv. Open perceptual_map.Rproj, or ",
+       "setwd() to the project folder.", call. = FALSE)
+})
 
-CARS <- read.csv("data/cars.csv", stringsAsFactors = FALSE)
+#' Path to something inside the project, whatever the working directory is.
+pm_path <- function(...) file.path(PM_ROOT, ...)
+
+for (f in c("silhouettes", "pca", "layout", "plot", "explain")) source(pm_path("R", paste0(f, ".R")), encoding = "UTF-8")
+
+CARS <- read.csv(pm_path("data", "cars.csv"), stringsAsFactors = FALSE)
 # Only offer body types the data actually has, in the canonical order, so
 # removing every car of a type does not leave a checkbox that filters nothing.
 BODIES <- intersect(BODY_LEVELS, unique(CARS$body))

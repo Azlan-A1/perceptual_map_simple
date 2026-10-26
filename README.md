@@ -23,6 +23,24 @@ shiny::runApp()          # the interactive app (or click "Run App")
 Everything runs on packages you already have: **ggplot2, shiny, bslib,
 patchwork, scales, grid**, with **ragg** optional. Nothing to install.
 
+### Any directory, any platform
+
+`app.R` and `run_static.R` locate the project themselves, so neither depends on
+the working directory. They check the path R was given on the command line, then
+the file being `source()`d, then the working directory, and walk up to the folder
+holding `R/` and `data/cars.csv`. All of these work from anywhere:
+
+```r
+shiny::runApp("~/perceptual_map")          # or RStudio's Run App
+source("~/perceptual_map/run_static.R")    # writes into the project, not your cwd
+```
+```bash
+Rscript ~/perceptual_map/run_static.R      # from any folder
+```
+
+Exports always land in the project's `outputs/`, never in the directory you
+happened to start from.
+
 ### Windows, macOS or Linux
 
 The project is plain R with relative paths, so it runs the same on all three.
