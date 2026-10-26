@@ -19,14 +19,6 @@ xp_css <- htmltools::HTML("
   width: 1.6rem; height: 1.6rem; flex: 0 0 1.6rem; border-radius: 50%;
   background: var(--bs-primary); color: #fff; font-size: .8rem; font-weight: 700;
 }
-.xp .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: .35rem; }
-.xp .flow .box {
-  flex: 1 1 0; min-width: 110px; padding: .5rem .6rem; border-radius: .4rem;
-  background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
-}
-.xp .flow .box .t { font-weight: 650; font-size: .82rem; }
-.xp .flow .box .s { font-size: .72rem; color: var(--bs-secondary-color); font-family: var(--bs-font-monospace); }
-.xp .flow .arr { align-self: center; color: var(--bs-secondary-color); font-size: 1rem; }
 .xp .note {
   border-left: 3px solid var(--bs-primary); padding: .5rem .75rem;
   background: var(--bs-body-bg); border-radius: .25rem; font-size: .87rem;
@@ -61,7 +53,6 @@ xp_css <- htmltools::HTML("
 @media (max-width: 800px) {
   .xp .compass { grid-template-columns: 1fr; grid-template-areas: 'up' 'left' 'mid' 'right' 'down'; }
 }
-@media (max-width: 700px) { .xp .flow .arr { display: none; } }
 ")
 
 xp_sec <- function(n, title, ...) {
@@ -77,20 +68,6 @@ xp_sec <- function(n, title, ...) {
 
 xp_note <- function(head, ...) {
   tags$div(class = "note my-2", tags$span(class = "h", head), " ", ...)
-}
-
-xp_flow <- function() {
-  step <- function(t, s) tags$div(class = "box", tags$div(class = "t", t), tags$div(class = "s", s))
-  arr  <- tags$div(class = "arr", HTML("&rarr;"))
-  tags$div(class = "flow my-1",
-    step("Specs",       "data/cars.csv"),
-    arr, step("Transform",   "build_matrix()"),
-    arr, step("Standardise", "scale. = TRUE"),
-    arr, step("PCA",         "prcomp()"),
-    arr, step("Pin signs",   "fix_signs()"),
-    arr, step("Scores + r",  "cor(X, PC)"),
-    arr, step("Draw",        "build_map()")
-  )
 }
 
 #' The attribute table, generated from ATTRS so it always matches the engine.
@@ -202,11 +179,6 @@ explain_ui <- function(cars, attrs) {
       " Two cars sit close together here because their ", n_attr, " specifications are similar overall ",
       "\u2014 not because of any single number. Everything below is computed live from ",
       tags$code("data/cars.csv"), "; nothing is hard-coded."),
-
-    xp_flow(),
-    tags$p(class = "text-body-secondary small mt-2 mb-3",
-           "Every stage re-runs the moment you tick an attribute, so the map you are looking at ",
-           "is always a fresh fit, never a cached image."),
 
     xp_sec(1, "The data",
       tags$p(n_car, " current models from ", n_brand, " brands, across ", n_body,
