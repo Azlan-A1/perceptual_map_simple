@@ -39,7 +39,7 @@ PM_ROOT <- local({
     }
   }
   stop("Could not find the project: no folder above '", getwd(),
-       "' contains both R/ and data/cars.csv. Open perceptual_map.Rproj, or ",
+       "' contains both R/ and data/cars.csv. Open perceptual_map_simple.Rproj, or ",
        "setwd() to the project folder.", call. = FALSE)
 })
 
