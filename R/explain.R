@@ -163,6 +163,90 @@ pcs_explainer <- function(m, xpc, ypc, thresh = 0.45, max_axis = 4) {
   )
 }
 
+#' A plain-English line for each component above the loadings table, so the
+#' columns are not just PC1..PC4. Same axis_theme()/axis_ends() as the map and
+#' the How it works tab, so the three cannot drift apart.
+loadings_key <- function(m, xpc, ypc, max_pc = 4, thresh = 0.45) {
+  pcs <- intersect(paste0("PC", seq_len(max_pc)), names(m$loadings))
+  if (!length(pcs)) return(NULL)
+  item <- function(pc) {
+    ve <- m$ve[as.integer(sub("PC", "", pc))]
+    th <- axis_theme(m$loadings, pc, thresh)
+    e  <- axis_ends(m$loadings, pc, thresh = thresh)
+    on <- c(if (pc == xpc) "across", if (pc == ypc) "up")
+    tags$div(class = "border rounded p-2 flex-fill", style = "min-width: 11rem;",
+      tags$div(class = "d-flex align-items-baseline gap-2 flex-wrap",
+        tags$strong(pc),
+        tags$span(class = "text-body-secondary small", sprintf("%.1f%% of the variance", ve)),
+        if (length(on)) tags$span(class = "badge text-bg-primary",
+                                  paste("on map:", paste(on, collapse = " & ")))),
+      tags$div(class = "fw-semibold mt-1",
+               if (is.na(th)) tags$em("no clear pattern") else th),
+      tags$div(class = "small text-body-secondary",
+               if (e$weak) "no spec reaches 0.45" else paste("higher =", paste(e$pos, collapse = ", "))))
+  }
+  tagList(
+    tags$div(class = "d-flex flex-wrap gap-2 mb-3", lapply(pcs, item)),
+    tags$p(class = "small text-body-secondary mb-2",
+           "Each number is the correlation between a spec and that component: ",
+           "+1 means they rise together, \u22121 means one rises as the other falls, 0 means unrelated. ",
+           "Cells are shaded past \u00b10.5 \u2014 blue for a strong positive, red for a strong negative.")
+  )
+}
+
+#' The Loadings tab: what each component is, how each spec loads on it, and
+#' where each car sits.
+#'
+#' Plain HTML tables rather than DT: this copy has no DT dependency, the tables
+#' are small, and Bootstrap classes follow the dark-mode toggle on their own.
+#'
+#' The two halves are NOT on the same scale and the note says so -- attribute
+#' values are correlations capped at 1, car values are scores in standard
+#' deviations -- which is the same caveat the map's arrows carry.
+loadings_panel <- function(m, d, xpc, ypc, max_pc = 4, thresh = 0.5) {
+  pcs <- intersect(paste0("PC", seq_len(max_pc)), names(m$loadings))
+  num <- function(x) sprintf("%.2f", x)
+  cell <- function(v, shade) {
+    cls <- "text-end"
+    if (shade && is.finite(v) && abs(v) >= thresh) cls <- paste(cls, if (v > 0) "pm-pos" else "pm-neg")
+    tags$td(class = cls, num(v))
+  }
+  tbl <- function(rows, head1, first, shade) tags$div(
+    class = "table-responsive", style = "max-height: 26rem; overflow-y: auto;",
+    tags$table(class = "table table-sm align-middle mb-0",
+      tags$thead(class = "position-sticky top-0",
+        tags$tr(tags$th(head1), lapply(pcs, function(p) tags$th(class = "text-end", p)))),
+      tags$tbody(lapply(seq_len(nrow(rows)), function(i)
+        tags$tr(tags$td(first(rows, i)), lapply(pcs, function(p) cell(rows[[p]][i], shade)))))))
+
+  L <- m$loadings
+  cars <- if (nrow(d)) d[order(-d[[xpc]]), , drop = FALSE] else d
+
+  tagList(
+    # Bootstrap paints every cell via ".table > :not(caption) > * > *", which
+    # outranks a bare .pm-pos, so the tint is set through its own variable.
+    # Hues match the map; as tints they read on either theme.
+    tags$style(HTML(paste0(
+      ".pm-load td.pm-pos { --bs-table-bg: rgba(76,114,176,.22); }",
+      ".pm-load td.pm-neg { --bs-table-bg: rgba(196,78,82,.20); }",
+      ".pm-load thead th { background: var(--bs-body-bg); }"))),
+    loadings_key(m, xpc, ypc, max_pc = max_pc),
+
+    tags$h6(class = "fw-bold mt-3 mb-2", "Attributes: how each spec lines up with each component"),
+    tags$div(class = "pm-load", tbl(L, "attribute", function(r, i) r$var[i], TRUE)),
+    tags$h6(class = "fw-bold mt-4 mb-2",
+            sprintf("Cars: where each one sits, strongest %s first", xpc)),
+    if (!nrow(cars)) tags$p(class = "text-body-secondary", "No cars match the current body-type filter.")
+    else tags$div(class = "pm-load",
+      tbl(cars, "model", function(r, i) tagList(r$model[i],
+            tags$span(class = "text-body-secondary small ms-2", r$body[i])), FALSE)),
+    tags$p(class = "small text-body-secondary mt-2 mb-0",
+           "Scores in standard deviations from the average car, not correlations, so these ",
+           "are not comparable with the numbers above. 0 is the crosshair on the map; ",
+           sprintf("a car at +2 on %s is two standard deviations along it.", xpc))
+  )
+}
+
 #' Build the whole tab.
 explain_ui <- function(cars, attrs) {
   n_car   <- nrow(cars)

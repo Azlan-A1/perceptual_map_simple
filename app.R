@@ -134,6 +134,7 @@ ui <- page_sidebar(
       )
     ),
     nav_panel("Variance", card_body(plotOutput("scree", height = "380px"))),
+    nav_panel("Loadings", card_body(uiOutput("loadpanel"), fillable = FALSE)),
     nav_panel("How it works", card_body(explain_ui(CARS, ATTRS), fillable = FALSE))
   )
 )
@@ -241,6 +242,8 @@ server <- function(input, output, session) {
   output$xp_pcs  <- renderUI(pcs_explainer(md(), xpc(), ypc()))
 
   # ---- other tabs -----------------------------------------------------------
+  output$loadpanel <- renderUI(loadings_panel(md(), pdat(), xpc(), ypc()))
+
   output$scree <- renderPlot({
     m <- md()
     s <- data.frame(pc = factor(paste0("PC", seq_along(m$ve)), levels = paste0("PC", seq_along(m$ve))),
